@@ -7,26 +7,63 @@
   <script>
     window.dataLayer = window.dataLayer || [];
     window.dataLayer.push({ pf_enabled: 'true' });
+
+    /* ============================================================
+       CONFIGURATION MULTI-GTM
+       Ajouter un conteneur = ajouter une entrée dans ce tableau.
+       Chaque conteneur doit avoir son fichier de config distant
+       (hébergé sur ce domaine) avec un champ gtm_container.
+       ============================================================ */
+    window.GTM_SETUP = [
+      {
+        gtm: 'GTM-WGL79Z',
+        cfg: 'https://dulcet-bublanina-515f08.netlify.app/meta-pf.js'
+      }
+      // Exemple pour un second conteneur :
+      // {
+      //   gtm: 'GTM-XXXXXXXX',
+      //   cfg: 'https://dulcet-bublanina-515f08.netlify.app/meta-pf-GTM-XXXXXXXX.js'
+      // }
+    ];
+
+    /* Chaque fichier de config distant doit ressembler à :
+       window.dataLayer.push({
+         event: "pf_ready",
+         gtm_container: "GTM-XXXXXXXX",
+         pf_enabled: "true", ga4_en: "false", li_en: "false", ads_en: "false", ttk_en: "false"
+       });
+    */
   </script>
   <style>
     /* Page blanche : aucun contenu visible */
     html, body { margin:0; padding:0; background:#ffffff; }
-    /* Le panneau existe dans le code mais reste masqué.
-       Pour le rendre visible : remplacer display:none par display:block
-       dans la règle .wrap ci-dessous. */
+    /* Panneau masqué : remplacer display:none par display:block pour le voir */
     .wrap { display:none; }
+    .card{background:#171a21;border:1px solid #2a2f3a;border-radius:10px;padding:14px;margin-bottom:14px;color:#e6e8ee;}
+    .row{display:flex;align-items:center;justify-content:space-between;padding:8px 2px;border-bottom:1px solid #242936;font-family:system-ui,sans-serif;font-size:13px;}
+    .row:last-child{border-bottom:none;}
+    .badge{padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600;}
+    .ok{background:#1f2e24;color:#4ade80;}
+    .off{background:#2a2323;color:#f87171;}
+    .wait{background:#26231a;color:#fbbf24;}
+    .mono{font-family:ui-monospace,monospace;font-size:12px;}
   </style>
 </head>
 <body>
-  <!-- Google Tag Manager -->
+  <!-- Google Tag Manager : chargement dynamique de tous les conteneurs -->
   <script>
-    (function(w,d,s,l,i){
-      w[l]=w[l]||[];
-      w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});
-      var f=d.getElementsByTagName(s)[0], j=d.createElement(s), dl=l!='dataLayer'?'&l='+l:'';
-      j.async=true; j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;
-      f.parentNode.insertBefore(j,f);
-    })(window,document,'script','dataLayer','GTM-WGL79Z');
+    (function(){
+      var setup = window.GTM_SETUP || [];
+      setup.forEach(function(entry){
+        (function(w,d,s,l,i){
+          w[l]=w[l]||[];
+          w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});
+          var f=d.getElementsByTagName(s)[0], j=d.createElement(s), dl=l!='dataLayer'?'&l='+l:'';
+          j.async=true; j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;
+          f.parentNode.insertBefore(j,f);
+        })(window,document,'script','dataLayer', entry.gtm);
+      });
+    })();
   </script>
   <!-- End Google Tag Manager -->
 
@@ -37,25 +74,14 @@
   </noscript>
   <!-- End Google Tag Manager (noscript) -->
 
+  <!-- Panneau de diagnostic (masqué par défaut) -->
   <div class="wrap">
-    <h1>Contrôle balises — GTM-WGL79Z</h1>
-
-    <div class="card">
-      <div class="mono" id="st-conn" style="margin-bottom:6px;">Décision distante : <b>non reçue</b></div>
-      <div class="mono" id="st-marker">dataLayer à l'ecoute</div>
-    </div>
-
-    <div class="card">
-      <b>Décision distante (meta-pf.js)</b>
-      <div id="rows"></div>
-    </div>
-
+    <h1 style="font-family:system-ui,sans-serif;color:#e6e8ee;font-size:20px;">Contrôle balises — multi-GTM</h1>
+    <div id="containers"></div>
     <div class="card">
       <b>Exécution réelle dans le navigateur</b>
       <div id="exec"></div>
     </div>
-
-    <div class="mono" style="opacity:.55;font-size:11px;">Recharger la page apres avoir modifie le flag dans meta-pf.js</div>
   </div>
 
   <script>
@@ -67,27 +93,43 @@
       {flag:'ads_en',     label:'Google Ads', needle:'googleadservices.com', name:'ads'},
       {flag:'ttk_en',     label:'TikTok',     needle:'analytics.tiktok.com', name:'ttk'}
     ];
-    var rowsEl=document.getElementById('rows');
+    var containersEl=document.getElementById('containers');
     var execEl=document.getElementById('exec');
-    var connEl=document.getElementById('st-conn');
+    var setup=window.GTM_SETUP||[];
 
-    var state={};
-    DEF.forEach(function(d){ state[d.name]={label:d.label,flag:d.flag,value:null,fired:false}; });
+    var states={};   // gtm_container -> {flag -> value}
+    var fired={};    // name -> fired flag
 
-    function renderRows(){
-      if(!rowsEl) return;
+    function containerCard(entry){
+      var cid=entry.gtm;
+      var card=document.createElement('div'); card.className='card';
+      card.id='ct-'+cid;
+      var head=document.createElement('div');
+      head.style.cssText='margin-bottom:8px;font-family:system-ui,sans-serif;color:#e6e8ee;';
+      head.innerHTML='<b>'+cid+'</b> <span class="mono" style="opacity:.6">('+entry.cfg+')</span> <span id="st-'+cid+'" class="badge wait">en attente</span>';
+      card.appendChild(head);
+      var rows=document.createElement('div'); rows.id='rows-'+cid;
+      card.appendChild(rows);
+      containersEl.appendChild(card);
+    }
+
+    function renderRows(cid){
+      var rowsEl=document.getElementById('rows-'+cid); if(!rowsEl) return;
       rowsEl.innerHTML='';
+      var st=states[cid]||{};
       DEF.forEach(function(d){
-        var s=state[d.name], r=document.createElement('div'); r.className='row';
-        var txt=document.createElement('span'); txt.textContent=s.label+'  ('+s.flag+')';
-        var b=document.createElement('span'); b.className='badge '+ (s.value===null?'wait':(s.value==='true'?'ok':'off'));
-        b.textContent = s.value===null ? 'en attente' : (s.value==='true'?'DECLENCHEMENT ARME':'desactive');
+        var v=st[d.flag];
+        var r=document.createElement('div'); r.className='row';
+        var txt=document.createElement('span'); txt.textContent=d.label+'  ('+d.flag+')';
+        var b=document.createElement('span'); b.className='badge '+ (v===undefined?'wait':(v==='true'?'ok':'off'));
+        b.textContent = v===undefined ? 'en attente' : (v==='true'?'DECLENCHEMENT ARME':'desactive');
         r.appendChild(txt); r.appendChild(b); rowsEl.appendChild(r);
       });
     }
+
     function execRow(name,label,ok){
       if(!execEl || document.getElementById('ex-'+name)) return;
-      var d=document.createElement('div'); d.className='row'; d.id='ex-'+name;
+      var d=document.createElement('div'); d.className='row';
       var txt=document.createElement('span'); txt.textContent=label;
       var b=document.createElement('span'); b.className='badge '+(ok?'ok':'off');
       b.textContent=ok?'charge':'non charge';
@@ -98,19 +140,23 @@
       var res=performance.getEntriesByType('resource').map(function(e){return e.name;});
       DEF.forEach(function(d){
         var hit=res.find(function(u){ return u.indexOf(d.needle)>-1; });
-        if(hit){ state[d.name].fired=true; execRow(d.name,state[d.name].label,true); }
+        if(hit && !fired[d.name]){ fired[d.name]=true; execRow(d.name,d.label,true); }
       });
     }
 
     function watch(){
       (window.dataLayer||[]).forEach(function(item){
         if(item && typeof item==='object' && (item.event==='pf_ready'||item.event==='facebook_pixel_config_ready')){
-          if(connEl) connEl.innerHTML='Décision distante : <b style="color:#4ade80;">reçue</b>';
+          var cid = item.gtm_container || (setup[0] && setup[0].gtm) || 'default';
+          states[cid]=states[cid]||{};
           DEF.forEach(function(d){
-            var v = item[d.flag]!==undefined ? item[d.flag] : (item.facebook_pixel_enabled!==undefined&&d.flag==='pf_enabled'?item.facebook_pixel_enabled:undefined);
-            if(v!==undefined){ state[d.name].value=String(v); }
+            var v = item[d.flag]!==undefined ? item[d.flag]
+                  : (item.facebook_pixel_enabled!==undefined&&d.flag==='pf_enabled'?item.facebook_pixel_enabled:undefined);
+            if(v!==undefined){ states[cid][d.flag]=String(v); }
           });
-          renderRows();
+          var stEl=document.getElementById('st-'+cid);
+          if(stEl){ stEl.textContent='reçue'; stEl.className='badge ok'; }
+          renderRows(cid);
           setTimeout(scanResources, 1200);
         }
       });
@@ -118,9 +164,8 @@
     }
 
     function init(){
-      var m=document.getElementById('st-marker');
-      if(m) m.textContent='dataLayer a l ecoute';
-      renderRows();
+      setup.forEach(containerCard);
+      setup.forEach(function(e){ renderRows(e.gtm); });
       watch();
     }
     if(document.readyState==='loading'){ document.addEventListener('DOMContentLoaded', init); }
