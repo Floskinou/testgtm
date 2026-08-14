@@ -1,22 +1,13 @@
-<!doctype html>
-<html lang="fr" data-facebook-pixel-enabled="true">
+<!DOCTYPE html>
+<html lang="fr">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="facebook-pixel-enabled" content="true">
-  <title>Test du pixel Meta</title>
-
-  <!--
-    Interrupteur du pixel Meta pour GTM.
-    Pour désactiver le pixel, remplacer les trois valeurs true par false :
-    1) data-facebook-pixel-enabled sur <html>
-    2) content de la balise meta ci-dessus
-    3) facebook_pixel_enabled dans le dataLayer ci-dessous
-  -->
+  <title>Page de test</title>
   <script>
     window.dataLayer = window.dataLayer || [];
     window.dataLayer.push({
-      facebook_pixel_enabled: 'true'
+      pf_enabled: 'true'
     });
   </script>
 
