@@ -20,7 +20,6 @@
     .off{background:#2a2323;color:#f87171;}
     .wait{background:#26231a;color:#fbbf24;}
     .mono{font-family:ui-monospace,monospace;font-size:12px;}
-    .status-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}
   </style>
 </head>
 <body>
@@ -40,36 +39,35 @@
     <h1>Contrôle balises — GTM-WGL79Z</h1>
 
     <div class="card">
-      <div class="mono" style="margin-bottom:6px;">🔌 Chargement loading=<span id="st-loader">en attente</span></div>
-      <div class="mono" id="st-marker">dataLayer: à l'écoute…</div>
+      <div class="mono" id="st-conn" style="margin-bottom:6px;">Décision distante : <b>non reçue</b></div>
+      <div class="mono" id="st-marker">dataLayer à l'ecoute</div>
     </div>
 
     <div class="card">
-      <div style="margin-bottom:8px;"><b>Décision distante (meta-pf.js)</b> <span id="st-conn" class="badge wait">non reçue</span></div>
+      <b>Décision distante (meta-pf.js)</b>
       <div id="rows"></div>
     </div>
 
     <div class="card">
-      <div style="margin-bottom:8px;"><b>Exécution réelle dans le navigateur</b></div>
+      <b>Exécution réelle dans le navigateur</b>
       <div id="exec"></div>
     </div>
 
-    <div class="mono" style="opacity:.55;font-size:11px;">Test manuel : recharger la page après avoir modifié le flag dans meta-pf.js.</div>
+    <div class="mono" style="opacity:.55;font-size:11px;">Recharger la page apres avoir modifie le flag dans meta-pf.js</div>
   </div>
 
   <script>
   (function(){
     var DEF = [
-      {flag:'pf_enabled', label:'Meta Pixel',   sig:'fbevents',      name:'meta'}
-    , {flag:'ga4_en',     label:'GA4',          sig:'g\\/collect',    name:'ga4'}
-    , {flag:'li_en',      label:'LinkedIn',     sig:'snap\\.licdn|px\\.ads\\.linkedin', name:'li'}
-    , {flag:'ads_en',     label:'Google Ads',   sig:'googleadservices|pagead|gtag\\/js\\?id=AW', name:'ads'}
-    , {flag:'ttk_en',     label:'TikTok',       sig:'i18n\\/pixel\\/sdk\\.js', name:'ttk'}
+      {flag:'pf_enabled', label:'Meta Pixel', needle:'fbevents', name:'meta'},
+      {flag:'ga4_en',     label:'GA4',        needle:'g/collect', name:'ga4'},
+      {flag:'li_en',      label:'LinkedIn',   needle:'snap.licdn.com', name:'li'},
+      {flag:'ads_en',     label:'Google Ads', needle:'googleadservices.com', name:'ads'},
+      {flag:'ttk_en',     label:'TikTok',     needle:'analytics.tiktok.com', name:'ttk'}
     ];
     var rowsEl=document.getElementById('rows');
     var execEl=document.getElementById('exec');
     var connEl=document.getElementById('st-conn');
-    var markerEl=document.getElementById('st-marker');
 
     var state={};
     DEF.forEach(function(d){ state[d.name]={label:d.label,flag:d.flag,value:null,fired:false}; });
@@ -80,50 +78,49 @@
         var s=state[d.name], r=document.createElement('div'); r.className='row';
         var txt=document.createElement('span'); txt.textContent=s.label+'  ('+s.flag+')';
         var b=document.createElement('span'); b.className='badge '+ (s.value===null?'wait':(s.value==='true'?'ok':'off'));
-        b.textContent = s.value===null ? 'en attente' : (s.value==='true'?'DÉCLENCHEMENT ARMÉ':'désactivé');
+        b.textContent = s.value===null ? 'en attente' : (s.value==='true'?'DECLENCHEMENT ARME':'desactive');
         r.appendChild(txt); r.appendChild(b); rowsEl.appendChild(r);
       });
     }
-    function execRow(name,label,ok,det){
+    function execRow(name,label,ok){
       if(document.getElementById('ex-'+name)) return;
       var d=document.createElement('div'); d.className='row'; d.id='ex-'+name;
       var txt=document.createElement('span'); txt.textContent=label;
       var b=document.createElement('span'); b.className='badge '+(ok?'ok':'off');
-      b.textContent=ok?('chargé ('+det.replace('https://','')+')'):'non chargé';
+      b.textContent=ok?'charge':'non charge';
       d.appendChild(txt); d.appendChild(b); execEl.appendChild(d);
     }
-    function setMarker(msg){ markerEl.textContent='dataLayer: '+msg; }
 
     function scanResources(){
       var res=performance.getEntriesByType('resource').map(function(e){return e.name;});
       DEF.forEach(function(d){
-        var re=new RegExp(d.sig);
-        var hit=res.find(function(u){return re.test(u);});
-        if(hit){ state[d.name].fired=true; execRow(d.name,state[d.name].label,true,hit); }
+        var hit=res.find(function(u){ return u.indexOf(d.needle)>-1; });
+        if(hit){ state[d.name].fired=true; execRow(d.name,state[d.name].label,true); }
       });
     }
 
     function watch(){
-      window.dataLayer.slice().forEach(function(item){
-        if(item && typeof item==='object'){
-          if(item.event==='pf_ready'||item.event==='facebook_pixel_config_ready'){
-            var obj = item.event==='pf_ready'?item:{pf_enabled:item.facebook_pixel_enabled};
-            connEl.textContent='reçue'; connEl.className='badge ok';
-            ['pf_enabled','ga4_en','li_en','ads_en','ttk_en'].forEach(function(f){
-              var d=DEF.find(function(x){return x.flag===f;});
-              if(d && item[f]!==undefined){ state[d.name].value = item[f]; }
-            });
-            renderRows();
-            setTimeout(scanResources, 1200);
-          }
+      (window.dataLayer||[]).forEach(function(item){
+        if(item && typeof item==='object' && (item.event==='pf_ready'||item.event==='facebook_pixel_config_ready')){
+          connEl.innerHTML='Décision distante : <b style="color:#4ade80;">reçue</b>';
+          DEF.forEach(function(d){
+            var v = item[d.flag]!==undefined ? item[d.flag] : (item.facebook_pixel_enabled!==undefined&&d.flag==='pf_enabled'?item.facebook_pixel_enabled:undefined);
+            if(v!==undefined){ state[d.name].value=String(v); }
+          });
+          renderRows();
+          setTimeout(scanResources, 1200);
         }
       });
       setTimeout(watch, 400);
     }
 
-    renderRows();
-    setMarker('à l'écoute…');
-    watch();
+    function init(){
+      document.getElementById('st-marker').textContent='dataLayer a l ecoute';
+      renderRows();
+      watch();
+    }
+    if(document.readyState==='loading'){ document.addEventListener('DOMContentLoaded', init); }
+    else { init(); }
   })();
   </script>
 </body>
