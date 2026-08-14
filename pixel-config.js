@@ -4,5 +4,5 @@
 window.dataLayer = window.dataLayer || [];
 window.dataLayer.push({
   event: "facebook_pixel_config_ready",
-  facebook_pixel_enabled: "true"
+  facebook_pixel_enabled: "false"
 });
