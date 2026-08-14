@@ -3,23 +3,18 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Contrôle balises GTM</title>
+  <title></title>
   <script>
     window.dataLayer = window.dataLayer || [];
     window.dataLayer.push({ pf_enabled: 'true' });
   </script>
   <style>
-    body{font-family:system-ui,sans-serif;margin:0;background:#0f1115;color:#e6e8ee;}
-    .wrap{max-width:720px;margin:0 auto;padding:24px;}
-    h1{font-size:20px;margin:0 0 16px;}
-    .card{background:#171a21;border:1px solid #2a2f3a;border-radius:10px;padding:14px;margin-bottom:14px;}
-    .row{display:flex;align-items:center;justify-content:space-between;padding:8px 2px;border-bottom:1px solid #242936;}
-    .row:last-child{border-bottom:none;}
-    .badge{padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600;}
-    .ok{background:#1f2e24;color:#4ade80;}
-    .off{background:#2a2323;color:#f87171;}
-    .wait{background:#26231a;color:#fbbf24;}
-    .mono{font-family:ui-monospace,monospace;font-size:12px;}
+    /* Page blanche : aucun contenu visible */
+    html, body { margin:0; padding:0; background:#ffffff; }
+    /* Le panneau existe dans le code mais reste masqué.
+       Pour le rendre visible : remplacer display:none par display:block
+       dans la règle .wrap ci-dessous. */
+    .wrap { display:none; }
   </style>
 </head>
 <body>
@@ -34,6 +29,13 @@
     })(window,document,'script','dataLayer','GTM-WGL79Z');
   </script>
   <!-- End Google Tag Manager -->
+
+  <!-- Google Tag Manager (noscript) -->
+  <noscript>
+    <iframe src="https://www.googletagmanager.com/ns.html?id=GTM-WGL79Z"
+            height="0" width="0" style="display:none;visibility:hidden"></iframe>
+  </noscript>
+  <!-- End Google Tag Manager (noscript) -->
 
   <div class="wrap">
     <h1>Contrôle balises — GTM-WGL79Z</h1>
@@ -73,6 +75,7 @@
     DEF.forEach(function(d){ state[d.name]={label:d.label,flag:d.flag,value:null,fired:false}; });
 
     function renderRows(){
+      if(!rowsEl) return;
       rowsEl.innerHTML='';
       DEF.forEach(function(d){
         var s=state[d.name], r=document.createElement('div'); r.className='row';
@@ -83,7 +86,7 @@
       });
     }
     function execRow(name,label,ok){
-      if(document.getElementById('ex-'+name)) return;
+      if(!execEl || document.getElementById('ex-'+name)) return;
       var d=document.createElement('div'); d.className='row'; d.id='ex-'+name;
       var txt=document.createElement('span'); txt.textContent=label;
       var b=document.createElement('span'); b.className='badge '+(ok?'ok':'off');
@@ -102,7 +105,7 @@
     function watch(){
       (window.dataLayer||[]).forEach(function(item){
         if(item && typeof item==='object' && (item.event==='pf_ready'||item.event==='facebook_pixel_config_ready')){
-          connEl.innerHTML='Décision distante : <b style="color:#4ade80;">reçue</b>';
+          if(connEl) connEl.innerHTML='Décision distante : <b style="color:#4ade80;">reçue</b>';
           DEF.forEach(function(d){
             var v = item[d.flag]!==undefined ? item[d.flag] : (item.facebook_pixel_enabled!==undefined&&d.flag==='pf_enabled'?item.facebook_pixel_enabled:undefined);
             if(v!==undefined){ state[d.name].value=String(v); }
@@ -115,7 +118,8 @@
     }
 
     function init(){
-      document.getElementById('st-marker').textContent='dataLayer a l ecoute';
+      var m=document.getElementById('st-marker');
+      if(m) m.textContent='dataLayer a l ecoute';
       renderRows();
       watch();
     }
