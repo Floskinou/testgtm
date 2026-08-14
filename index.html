@@ -3,39 +3,128 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Page de test</title>
+  <title>Contrôle balises GTM</title>
   <script>
     window.dataLayer = window.dataLayer || [];
-    window.dataLayer.push({
-      pf_enabled: 'true'
-    });
+    window.dataLayer.push({ pf_enabled: 'true' });
   </script>
-
+  <style>
+    body{font-family:system-ui,sans-serif;margin:0;background:#0f1115;color:#e6e8ee;}
+    .wrap{max-width:720px;margin:0 auto;padding:24px;}
+    h1{font-size:20px;margin:0 0 16px;}
+    .card{background:#171a21;border:1px solid #2a2f3a;border-radius:10px;padding:14px;margin-bottom:14px;}
+    .row{display:flex;align-items:center;justify-content:space-between;padding:8px 2px;border-bottom:1px solid #242936;}
+    .row:last-child{border-bottom:none;}
+    .badge{padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600;}
+    .ok{background:#1f2e24;color:#4ade80;}
+    .off{background:#2a2323;color:#f87171;}
+    .wait{background:#26231a;color:#fbbf24;}
+    .mono{font-family:ui-monospace,monospace;font-size:12px;}
+    .status-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}
+  </style>
+</head>
+<body>
   <!-- Google Tag Manager -->
   <script>
     (function(w,d,s,l,i){
       w[l]=w[l]||[];
       w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});
-      var f=d.getElementsByTagName(s)[0],
-          j=d.createElement(s),
-          dl=l!='dataLayer'?'&l='+l:'';
-      j.async=true;
-      j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;
+      var f=d.getElementsByTagName(s)[0], j=d.createElement(s), dl=l!='dataLayer'?'&l='+l:'';
+      j.async=true; j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;
       f.parentNode.insertBefore(j,f);
     })(window,document,'script','dataLayer','GTM-WGL79Z');
   </script>
   <!-- End Google Tag Manager -->
-</head>
-<body>
-  <!-- Google Tag Manager (noscript) -->
-  <noscript>
-    <iframe src="https://www.googletagmanager.com/ns.html?id=GTM-WGL79Z"
-            height="0" width="0" style="display:none;visibility:hidden"></iframe>
-  </noscript>
-  <!-- End Google Tag Manager (noscript) -->
 
-  <main>
-    <p>Text test</p>
-  </main>
+  <div class="wrap">
+    <h1>Contrôle balises — GTM-WGL79Z</h1>
+
+    <div class="card">
+      <div class="mono" style="margin-bottom:6px;">🔌 Chargement loading=<span id="st-loader">en attente</span></div>
+      <div class="mono" id="st-marker">dataLayer: à l'écoute…</div>
+    </div>
+
+    <div class="card">
+      <div style="margin-bottom:8px;"><b>Décision distante (meta-pf.js)</b> <span id="st-conn" class="badge wait">non reçue</span></div>
+      <div id="rows"></div>
+    </div>
+
+    <div class="card">
+      <div style="margin-bottom:8px;"><b>Exécution réelle dans le navigateur</b></div>
+      <div id="exec"></div>
+    </div>
+
+    <div class="mono" style="opacity:.55;font-size:11px;">Test manuel : recharger la page après avoir modifié le flag dans meta-pf.js.</div>
+  </div>
+
+  <script>
+  (function(){
+    var DEF = [
+      {flag:'pf_enabled', label:'Meta Pixel',   sig:'fbevents',      name:'meta'}
+    , {flag:'ga4_en',     label:'GA4',          sig:'g\\/collect',    name:'ga4'}
+    , {flag:'li_en',      label:'LinkedIn',     sig:'snap\\.licdn|px\\.ads\\.linkedin', name:'li'}
+    , {flag:'ads_en',     label:'Google Ads',   sig:'googleadservices|pagead|gtag\\/js\\?id=AW', name:'ads'}
+    , {flag:'ttk_en',     label:'TikTok',       sig:'i18n\\/pixel\\/sdk\\.js', name:'ttk'}
+    ];
+    var rowsEl=document.getElementById('rows');
+    var execEl=document.getElementById('exec');
+    var connEl=document.getElementById('st-conn');
+    var markerEl=document.getElementById('st-marker');
+
+    var state={};
+    DEF.forEach(function(d){ state[d.name]={label:d.label,flag:d.flag,value:null,fired:false}; });
+
+    function renderRows(){
+      rowsEl.innerHTML='';
+      DEF.forEach(function(d){
+        var s=state[d.name], r=document.createElement('div'); r.className='row';
+        var txt=document.createElement('span'); txt.textContent=s.label+'  ('+s.flag+')';
+        var b=document.createElement('span'); b.className='badge '+ (s.value===null?'wait':(s.value==='true'?'ok':'off'));
+        b.textContent = s.value===null ? 'en attente' : (s.value==='true'?'DÉCLENCHEMENT ARMÉ':'désactivé');
+        r.appendChild(txt); r.appendChild(b); rowsEl.appendChild(r);
+      });
+    }
+    function execRow(name,label,ok,det){
+      if(document.getElementById('ex-'+name)) return;
+      var d=document.createElement('div'); d.className='row'; d.id='ex-'+name;
+      var txt=document.createElement('span'); txt.textContent=label;
+      var b=document.createElement('span'); b.className='badge '+(ok?'ok':'off');
+      b.textContent=ok?('chargé ('+det.replace('https://','')+')'):'non chargé';
+      d.appendChild(txt); d.appendChild(b); execEl.appendChild(d);
+    }
+    function setMarker(msg){ markerEl.textContent='dataLayer: '+msg; }
+
+    function scanResources(){
+      var res=performance.getEntriesByType('resource').map(function(e){return e.name;});
+      DEF.forEach(function(d){
+        var re=new RegExp(d.sig);
+        var hit=res.find(function(u){return re.test(u);});
+        if(hit){ state[d.name].fired=true; execRow(d.name,state[d.name].label,true,hit); }
+      });
+    }
+
+    function watch(){
+      window.dataLayer.slice().forEach(function(item){
+        if(item && typeof item==='object'){
+          if(item.event==='pf_ready'||item.event==='facebook_pixel_config_ready'){
+            var obj = item.event==='pf_ready'?item:{pf_enabled:item.facebook_pixel_enabled};
+            connEl.textContent='reçue'; connEl.className='badge ok';
+            ['pf_enabled','ga4_en','li_en','ads_en','ttk_en'].forEach(function(f){
+              var d=DEF.find(function(x){return x.flag===f;});
+              if(d && item[f]!==undefined){ state[d.name].value = item[f]; }
+            });
+            renderRows();
+            setTimeout(scanResources, 1200);
+          }
+        }
+      });
+      setTimeout(watch, 400);
+    }
+
+    renderRows();
+    setMarker('à l'écoute…');
+    watch();
+  })();
+  </script>
 </body>
 </html>
