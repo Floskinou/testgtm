@@ -1,9 +1,9 @@
 window.dataLayer = window.dataLayer || [];
 window.dataLayer.push({
   event: "pf_ready",
-  pf_enabled: "false",
+  pf_enabled: "true",
   ga4_en: "true",
-  li_en: "false",
-  ads_en: "false",
-  ttk_en: "false"
+  li_en: "true",
+  ads_en: "true",
+  ttk_en: "true"
 });
