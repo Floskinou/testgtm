@@ -4,5 +4,6 @@ window.dataLayer.push({
   pf_enabled: "false",
   ga4_en: "false",
   li_en: "false",
-  ads_en: "false"
+  ads_en: "false",
+  ttk_en: "false"
 });
